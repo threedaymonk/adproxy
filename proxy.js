@@ -1,5 +1,6 @@
 var http = require('http'),
-    fs   = require('fs');
+    fs   = require('fs'),
+    url  = require('url');
 
 var config = {
   listenPort: 8989,
@@ -39,8 +40,8 @@ var callback = function(uReq, uRes) {
     return;
   }
 
-  var host = uReq.headers.host.split(':');
-  var proxy = http.createClient(host[1] || 80, host[0]);
+  var reqUrl = url.parse(uReq.url);
+  var proxy = http.createClient(reqUrl.port || 80, reqUrl.hostname);
   proxy.on('error', function(err){
     log(ip, 500, uReq.method, uReq.url, err);
     uRes.writeHead(500);
@@ -48,7 +49,8 @@ var callback = function(uReq, uRes) {
   });
 
   var headers = uReq.headers;
-  var dReq = proxy.request(uReq.method, uReq.url, headers);
+  var path = reqUrl.pathname + (reqUrl.search || '');
+  var dReq = proxy.request(uReq.method, path, headers);
   dReq.addListener('response', function(dRes) {
     log(ip, dRes.statusCode, uReq.method, uReq.url, dRes.headers.location);
     dRes.addListener('data', function(chunk) {
