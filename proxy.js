@@ -25,9 +25,9 @@ var log = function(ip, code, method, url, message){
     msg = "=> " + message;
   }
   console.log(
-    "\033[" + logColors[statusClass] + "m" +
+    "\u001b[" + logColors[statusClass] + "m" +
     [ip, code, method, url, msg].join(" ") +
-    "\033[0m"
+    "\u001b[0m"
   );
 };
 
@@ -71,8 +71,8 @@ var callback = function(uReq, uRes) {
 };
 
 var regexpEscape = function(text){
-  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-}
+  return text.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, "\\$&");
+};
 
 var parseList = function(path){
   var lines = fs.readFileSync(path, 'utf-8').trim().split(/\n/);
