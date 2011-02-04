@@ -30,3 +30,9 @@ What is not supported
 * Anchoring
 * $-expressions
 * Anything to do with DOM manipulation
+
+Prerequisites
+-------------
+
+* node.js
+* optparse (`npm install optparse`)
