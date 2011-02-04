@@ -4,7 +4,7 @@ var http = require('http'),
 
 var config = {
   listenPort: 8989,
-  lists: []
+  filterLists: ['easylist.txt']
 };
 
 var whitelist = null;
@@ -18,17 +18,18 @@ var logColors = {
   5: 31  // red
 };
 
+var colorize = function(color, str){
+  return "\u001b[" + color + "m" + str + "\u001b[0m";
+};
+
 var log = function(ip, code, method, url, message){
   var statusClass = parseInt(code / 100, 10);
-  var msg = "";
   if (message) {
-    msg = "=> " + message;
+    message = "=> " + message;
   }
-  console.log(
-    "\u001b[" + logColors[statusClass] + "m" +
-    [ip, code, method, url, msg].join(" ") +
-    "\u001b[0m"
-  );
+  console.log(colorize(logColors[statusClass],
+    [ip, code, method, url, message].join(" ")
+  ));
 };
 
 var callback = function(uReq, uRes) {
@@ -74,8 +75,8 @@ var regexpEscape = function(text){
   return text.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, "\\$&");
 };
 
-var parseList = function(path){
-  var lines = fs.readFileSync(path, 'utf-8').trim().split(/\n/);
+var parseFilterList = function(path){
+  var lines = fs.readFileSync(path, 'utf-8').trim().split(/\n+/);
   var blEntries = [];
   var wlEntries = [];
   for (var i=0; i < lines.length; i++) {
@@ -101,13 +102,16 @@ var parseList = function(path){
   };
   blacklist = append(blacklist, blEntries);
   whitelist = append(whitelist, wlEntries);
+  console.log('Loaded ' + path);
 };
 
-var loadLists = function(){
+var loadFilterLists = function(){
   blacklist = null;
   whitelist = null;
-  parseList('easylist.txt');
-}
+  for (var i = 0; i < config.filterLists.length; i++) {
+    parseFilterList(config.filterLists[i]);
+  }
+};
 
 http.createServer(callback).listen(config.listenPort);
 
@@ -116,3 +120,7 @@ process.on('SIGUSR1', function(){
   loadLists();
   console.log('Reloaded lists');
 });
+loadFilterLists();
+process.on('SIGUSR1', loadFilterLists);
+
+http.createServer(callback).listen(config.listenPort);
