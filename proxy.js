@@ -7,6 +7,7 @@ var config = {
   lists: []
 };
 
+var whitelist = null;
 var blacklist = null;
 
 var logColors = {
@@ -33,7 +34,7 @@ var log = function(ip, code, method, url, message){
 var callback = function(uReq, uRes) {
   var ip = uReq.connection.remoteAddress;
 
-  if (uReq.url.match(blacklist)) {
+  if (!uReq.url.match(whitelist) && uReq.url.match(blacklist)) {
     log(ip, 403, uReq.method, uReq.url, 'Blacklisted');
     uRes.writeHead(403);
     uRes.end();
@@ -75,25 +76,36 @@ var regexpEscape = function(text){
 
 var parseList = function(path){
   var lines = fs.readFileSync(path, 'utf-8').trim().split(/\n/);
-  var entries = [];
+  var blEntries = [];
+  var wlEntries = [];
   for (var i=0; i < lines.length; i++) {
     var line = lines[i];
-    if (!line.match(/^[!\[]|#|@@/)) { // ignore comments, DOM rules and whitelisting
-      var re = regexpEscape(lines[i]).
+    if (!line.match(/^[!\[]|#/)) { // ignore comments, DOM rules and whitelisting
+      var isWl = false;
+      if (line.match(/^@@/)) {
+        line = line.slice(2);
+        isWl = true;
+      }
+      var re = regexpEscape(line).
                replace(/\\\*/, '.*'). // * => .*
                replace(/\\\^|\\\|\\\||\\\$.*/g, ''); // ignore ^ and || and $anything
-      entries.push(re);
+      if (isWl) {
+        wlEntries.push(re);
+      } else {
+        blEntries.push(re);
+      }
     }
   }
-  if (blacklist === null) {
-    blacklist = entries.join('|');
-  } else {
-    blacklist += '|' + entries.join('|');
-  }
+  var append = function(list, entries){
+    return ((list === null) ? '' : list + '|') + entries.join('|');
+  };
+  blacklist = append(blacklist, blEntries);
+  whitelist = append(whitelist, wlEntries);
 };
 
 var loadLists = function(){
   blacklist = null;
+  whitelist = null;
   parseList('easylist.txt');
 }
 
