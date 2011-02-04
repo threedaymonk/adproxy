@@ -14,6 +14,8 @@ Set your browser to use `localhost` port 8989 as a proxy.
 
 [1]: http://adblockplus.org/en/subscriptions
 
+Send the `USR1` signal to the proxy server to reload filter lists.
+
 What is supported
 -----------------
 
