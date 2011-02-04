@@ -92,6 +92,15 @@ var parseList = function(path){
   }
 };
 
-parseList("easylist.txt");
+var loadLists = function(){
+  blacklist = null;
+  parseList('easylist.txt');
+}
 
 http.createServer(callback).listen(config.listenPort);
+
+loadLists();
+process.on('SIGUSR1', function(){
+  loadLists();
+  console.log('Reloaded lists');
+});
