@@ -1,10 +1,12 @@
 var http = require('http'),
-    fs   = require('fs'),
-    url  = require('url');
+    fs = require('fs'),
+    url = require('url'),
+    sys = require('sys'),
+    optparse = require('optparse');
 
 var config = {
   listenPort: 8989,
-  filterLists: ['easylist.txt']
+  filterLists: []
 };
 
 var whitelist = null;
@@ -113,13 +115,23 @@ var loadFilterLists = function(){
   }
 };
 
-http.createServer(callback).listen(config.listenPort);
+var switches = [
+  ['-f', '--filter-list FILE', 'Use filter list file'],
+  ['-h', '--help', 'Show this help'],
+  ['-p', '--port NUMBER', 'Listen on specified port (default ' + config.listenPort + ')']
+];
 
-loadLists();
-process.on('SIGUSR1', function(){
-  loadLists();
-  console.log('Reloaded lists');
+var parser = new optparse.OptionParser(switches);
+parser.banner = 'Usage: node adproxy.js [options]';
+
+parser.on('port', function(k, v){ config.listenPort = v; });
+parser.on('filter-list', function(k, v){ config.filterLists.push(v); });
+parser.on('help', function(){
+  sys.puts(parser.toString());
+  process.exit();
 });
+parser.parse(process.argv);
+
 loadFilterLists();
 process.on('SIGUSR1', loadFilterLists);
 
