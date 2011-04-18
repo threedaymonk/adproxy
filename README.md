@@ -31,6 +31,13 @@ What is not supported
 * $-expressions
 * Anything to do with DOM manipulation
 
+Extensions
+----------
+
+Site-specific referrer spoofing (for permeable paywalls):
+
+    !ref|wsj.com|http://www.google.com/?q=wsj
+
 Prerequisites
 -------------
 

@@ -11,6 +11,7 @@ var config = {
 
 var whitelist = null;
 var blacklist = null;
+var refSpoof  = [];
 
 var logColors = {
   1: 36, // cyan
@@ -60,6 +61,13 @@ var callback = function(uReq, uRes) {
   });
 
   var headers = uReq.headers;
+
+  refSpoof.forEach(function(ref){
+    if (uReq.url.match(ref[0])) {
+      headers.referer = ref[1];
+    }
+  });
+
   var path = reqUrl.pathname + (reqUrl.search || '');
   var dReq = proxy.request(uReq.method, path, headers);
   dReq.addListener('response', function(dRes) {
@@ -88,27 +96,30 @@ var parseFilterList = function(path){
   var lines = fs.readFileSync(path, 'utf-8').trim().split(/\n+/);
   var blEntries = [];
   var wlEntries = [];
-  for (var i=0; i < lines.length; i++) {
-    var line = lines[i];
-    if (!line.match(/^[!\[]|#/)) { // ignore comments, DOM rules and whitelisting
-      var isWl = false;
+
+  var regexpFromLine = function(line){
+    return regexpEscape(line).
+           replace(/\\\*/, '.*'). // * => .*
+           replace(/\\\^|\\\|\\\||\\\$.*/g, ''); // ignore ^ and || and $anything
+  };
+
+  lines.forEach(function(line){
+    if (line.match(/^!ref\|/)) {
+      var parts = line.split(/\|/);
+      refSpoof.push([parts[1], parts[2]]);
+    } else if (!line.match(/^[!\[]|#/)) { // ignore comments, DOM rules and whitelisting
       if (line.match(/^@@/)) {
-        line = line.slice(2);
-        isWl = true;
-      }
-      var re = regexpEscape(line).
-               replace(/\\\*/, '.*'). // * => .*
-               replace(/\\\^|\\\|\\\||\\\$.*/g, ''); // ignore ^ and || and $anything
-      if (isWl) {
-        wlEntries.push(re);
+        wlEntries.push(regexpFromLine(line.slice(2)));
       } else {
-        blEntries.push(re);
+        blEntries.push(regexpFromLine(line));
       }
     }
-  }
+  });
+
   var append = function(list, entries){
     return ((list === null) ? '' : list + '|') + entries.join('|');
   };
+
   blacklist = append(blacklist, blEntries);
   whitelist = append(whitelist, wlEntries);
   console.log('Loaded ' + path);
@@ -117,9 +128,10 @@ var parseFilterList = function(path){
 var loadFilterLists = function(){
   blacklist = null;
   whitelist = null;
-  for (var i = 0; i < config.filterLists.length; i++) {
-    parseFilterList(config.filterLists[i]);
-  }
+  refSpoof  = [];
+  config.filterLists.forEach(function(list){
+    parseFilterList(list);
+  });
 };
 
 var switches = [
