@@ -9,9 +9,13 @@ var config = {
   filterLists: []
 };
 
-var whitelist = null;
-var blacklist = null;
-var refSpoof  = [];
+var whitelist, blacklist, refSpoof;
+
+var resetRules = function(){
+  whitelist = null;
+  blacklist = null;
+  refSpoof  = [];
+}
 
 var logColors = {
   1: 36, // cyan
@@ -130,9 +134,7 @@ var parseFilterList = function(path){
 };
 
 var loadFilterLists = function(){
-  blacklist = null;
-  whitelist = null;
-  refSpoof  = [];
+  resetRules();
   config.filterLists.forEach(function(list){
     parseFilterList(list);
   });
