@@ -9,12 +9,13 @@ var config = {
   filterLists: []
 };
 
-var whitelist, blacklist, refSpoof;
+var whitelist, blacklist, refSpoof, uaSpoof;
 
 var resetRules = function(){
   whitelist = null;
   blacklist = null;
   refSpoof  = [];
+  uaSpoof   = [];
 }
 
 var logColors = {
@@ -75,6 +76,7 @@ var callback = function(uReq, uRes) {
   };
 
   spoof(refSpoof, 'referer');
+  spoof(uaSpoof, 'user_agent');
 
   var path = reqUrl.pathname + (reqUrl.search || '');
   var dReq = proxy.request(uReq.method, path, headers);
@@ -115,6 +117,9 @@ var parseFilterList = function(path){
     if (line.match(/^!ref\|/)) {
       var parts = line.split(/\|/);
       refSpoof.push([parts[1], parts[2]]);
+    } else if (line.match(/^!ua\|/)) {
+      var parts = line.split(/\|/);
+      uaSpoof.push([parts[1], parts[2]]);
     } else if (!line.match(/^[!\[]|#/)) { // ignore comments, DOM rules and whitelisting
       if (line.match(/^@@/)) {
         wlEntries.push(regexpFromLine(line.slice(2)));
