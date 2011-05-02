@@ -62,11 +62,15 @@ var callback = function(uReq, uRes) {
 
   var headers = uReq.headers;
 
-  refSpoof.forEach(function(ref){
-    if (uReq.url.match(ref[0])) {
-      headers.referer = ref[1];
-    }
-  });
+  var spoof = function(rules, header){
+    rules.forEach(function(r){
+      if (uReq.url.match(r[0])) {
+        headers[header] = r[1];
+      }
+    });
+  };
+
+  spoof(refSpoof, 'referer');
 
   var path = reqUrl.pathname + (reqUrl.search || '');
   var dReq = proxy.request(uReq.method, path, headers);
