@@ -36,7 +36,11 @@ Extensions
 
 Site-specific referrer spoofing (for permeable paywalls):
 
-    !ref|wsj.com|http://www.google.com/?q=wsj
+    !ref|wsj.com/|http://www.google.com/?q=wsj
+
+Site-specific user agent spoofing:
+
+    !ua|example.com/|User agent string
 
 Prerequisites
 -------------
