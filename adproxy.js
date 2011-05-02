@@ -45,7 +45,7 @@ var callback = function(uReq, uRes) {
     return;
   }
 
-  if (["GET", "POST", "HEAD"].indexOf(uReq.method) < 0) {
+  if (["GET", "POST", "HEAD", "PUT", "DELETE"].indexOf(uReq.method) < 0) {
     log(ip, 501, uReq.method, uReq.url, 'Unsupported');
     uRes.writeHead(501);
     uRes.end();
