@@ -12,13 +12,12 @@ var config = {
   quiet: false
 };
 
-var whitelist, blacklist, refSpoof, uaSpoof;
+var whitelist, blacklist, spoofingRules;
 
 var resetRules = function(){
   whitelist = null;
   blacklist = null;
-  refSpoof  = [];
-  uaSpoof   = [];
+  spoofingRules = {};
 };
 
 var log = function(ip, code, method, url, message){
@@ -55,34 +54,31 @@ var callback = function(cReq, cRes) {
 
   var headers = cReq.headers;
 
-  var spoof = function(rules, header){
-    rules.forEach(function(r){
+  Object.keys(spoofingRules).forEach(function(name){
+    spoofingRules[name].forEach(function(r){
       if (cReq.url.match(r[0])) {
-        headers[header] = r[1];
+        headers[name] = r[1];
       }
     });
-  };
-
-  spoof(refSpoof, 'referer');
-  spoof(uaSpoof, 'user_agent');
+  });
 
   var path = reqUrl.pathname + (reqUrl.search || '');
   var pReq = proxy.request(cReq.method, path, headers);
-  pReq.addListener('response', function(pRes) {
+  pReq.addListener('response', function(pRes){
     var ip = cReq.connection.remoteAddress;
     log(ip, pRes.statusCode, cReq.method, cReq.url, pRes.headers.location);
-    pRes.addListener('data', function(chunk) {
+    pRes.addListener('data', function(chunk){
       cRes.write(chunk, 'binary');
     });
-    pRes.addListener('end', function() {
+    pRes.addListener('end', function(){
       cRes.end();
     });
     cRes.writeHead(pRes.statusCode, pRes.headers);
   });
-  cReq.addListener('data', function(chunk) {
+  cReq.addListener('data', function(chunk){
     pReq.write(chunk, 'binary');
   });
-  cReq.addListener('end', function() {
+  cReq.addListener('end', function(){
     pReq.end();
   });
 };
@@ -103,13 +99,12 @@ var parseFilterList = function(path){
   var wlEntries = [];
 
   lines.forEach(function(line){
-    var parts;
     if (line.match(/^!ref\|/)) {
-      parts = line.split(/\|/);
-      refSpoof.push([parts[1], parts[2]]);
+      spoofingRules.referer = spoofingRules.referer || [];
+      spoofingRules.referer.push(line.split(/\|/).slice(1,3));
     } else if (line.match(/^!ua\|/)) {
-      parts = line.split(/\|/);
-      uaSpoof.push([parts[1], parts[2]]);
+      spoofingRules.user_agent = spoofingRules.user_agent || [];
+      spoofingRules.user_agent.push(line.split(/\|/).slice(1,3));
     } else if (!line.match(/^[!\[]|#/)) { // ignore comments, DOM rules and whitelisting
       if (line.match(/^@@/)) {
         wlEntries.push(regexpFromLine(line.slice(2)));
