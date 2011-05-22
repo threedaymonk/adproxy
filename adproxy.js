@@ -19,7 +19,7 @@ var resetRules = function(){
   blacklist = null;
   refSpoof  = [];
   uaSpoof   = [];
-}
+};
 
 var log = function(ip, code, method, url, message){
   if (config.quiet) { return; }
@@ -29,29 +29,28 @@ var log = function(ip, code, method, url, message){
   console.log([ip, code, method, url, message].join(" "));
 };
 
-var callback = function(cReq, cRes) {
-  var ip = cReq.connection.remoteAddress;
+var killResponse = function(req, res, code, reason) {
+  log(res.connection.remoteAddress, code, req.method, req.url, reason);
+  res.writeHead(code);
+  res.end();
+};
 
+var callback = function(cReq, cRes) {
   if (!cReq.url.match(whitelist) && cReq.url.match(blacklist)) {
-    log(ip, 403, cReq.method, cReq.url, 'Blacklisted');
-    cRes.writeHead(403);
-    cRes.end();
+    killResponse(cReq, cRes, 403, 'Blacklisted');
     return;
   }
 
   if (SUPPORTED_METHODS.indexOf(cReq.method) < 0) {
-    log(ip, 501, cReq.method, cReq.url, 'Unsupported');
-    cRes.writeHead(501);
-    cRes.end();
+    killResponse(cReq, cRes, 501, 'Unsupported');
     return;
   }
 
   var reqUrl = url.parse(cReq.url);
   var proxy = http.createClient(reqUrl.port || 80, reqUrl.hostname);
+
   proxy.on('error', function(err){
-    log(ip, 500, cReq.method, cReq.url, err);
-    cRes.writeHead(500);
-    cRes.end();
+    killResponse(cReq, cRes, 500, err);
   });
 
   var headers = cReq.headers;
@@ -70,6 +69,7 @@ var callback = function(cReq, cRes) {
   var path = reqUrl.pathname + (reqUrl.search || '');
   var pReq = proxy.request(cReq.method, path, headers);
   pReq.addListener('response', function(pRes) {
+    var ip = cReq.connection.remoteAddress;
     log(ip, pRes.statusCode, cReq.method, cReq.url, pRes.headers.location);
     pRes.addListener('data', function(chunk) {
       cRes.write(chunk, 'binary');
@@ -103,11 +103,12 @@ var parseFilterList = function(path){
   var wlEntries = [];
 
   lines.forEach(function(line){
+    var parts;
     if (line.match(/^!ref\|/)) {
-      var parts = line.split(/\|/);
+      parts = line.split(/\|/);
       refSpoof.push([parts[1], parts[2]]);
     } else if (line.match(/^!ua\|/)) {
-      var parts = line.split(/\|/);
+      parts = line.split(/\|/);
       uaSpoof.push([parts[1], parts[2]]);
     } else if (!line.match(/^[!\[]|#/)) { // ignore comments, DOM rules and whitelisting
       if (line.match(/^@@/)) {
