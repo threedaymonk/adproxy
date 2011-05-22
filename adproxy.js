@@ -29,36 +29,36 @@ var log = function(ip, code, method, url, message){
   console.log([ip, code, method, url, message].join(" "));
 };
 
-var callback = function(uReq, uRes) {
-  var ip = uReq.connection.remoteAddress;
+var callback = function(cReq, cRes) {
+  var ip = cReq.connection.remoteAddress;
 
-  if (!uReq.url.match(whitelist) && uReq.url.match(blacklist)) {
-    log(ip, 403, uReq.method, uReq.url, 'Blacklisted');
-    uRes.writeHead(403);
-    uRes.end();
+  if (!cReq.url.match(whitelist) && cReq.url.match(blacklist)) {
+    log(ip, 403, cReq.method, cReq.url, 'Blacklisted');
+    cRes.writeHead(403);
+    cRes.end();
     return;
   }
 
-  if (SUPPORTED_METHODS.indexOf(uReq.method) < 0) {
-    log(ip, 501, uReq.method, uReq.url, 'Unsupported');
-    uRes.writeHead(501);
-    uRes.end();
+  if (SUPPORTED_METHODS.indexOf(cReq.method) < 0) {
+    log(ip, 501, cReq.method, cReq.url, 'Unsupported');
+    cRes.writeHead(501);
+    cRes.end();
     return;
   }
 
-  var reqUrl = url.parse(uReq.url);
+  var reqUrl = url.parse(cReq.url);
   var proxy = http.createClient(reqUrl.port || 80, reqUrl.hostname);
   proxy.on('error', function(err){
-    log(ip, 500, uReq.method, uReq.url, err);
-    uRes.writeHead(500);
-    uRes.end();
+    log(ip, 500, cReq.method, cReq.url, err);
+    cRes.writeHead(500);
+    cRes.end();
   });
 
-  var headers = uReq.headers;
+  var headers = cReq.headers;
 
   var spoof = function(rules, header){
     rules.forEach(function(r){
-      if (uReq.url.match(r[0])) {
+      if (cReq.url.match(r[0])) {
         headers[header] = r[1];
       }
     });
@@ -68,22 +68,22 @@ var callback = function(uReq, uRes) {
   spoof(uaSpoof, 'user_agent');
 
   var path = reqUrl.pathname + (reqUrl.search || '');
-  var dReq = proxy.request(uReq.method, path, headers);
-  dReq.addListener('response', function(dRes) {
-    log(ip, dRes.statusCode, uReq.method, uReq.url, dRes.headers.location);
-    dRes.addListener('data', function(chunk) {
-      uRes.write(chunk, 'binary');
+  var pReq = proxy.request(cReq.method, path, headers);
+  pReq.addListener('response', function(pRes) {
+    log(ip, pRes.statusCode, cReq.method, cReq.url, pRes.headers.location);
+    pRes.addListener('data', function(chunk) {
+      cRes.write(chunk, 'binary');
     });
-    dRes.addListener('end', function() {
-      uRes.end();
+    pRes.addListener('end', function() {
+      cRes.end();
     });
-    uRes.writeHead(dRes.statusCode, dRes.headers);
+    cRes.writeHead(pRes.statusCode, pRes.headers);
   });
-  uReq.addListener('data', function(chunk) {
-    dReq.write(chunk, 'binary');
+  cReq.addListener('data', function(chunk) {
+    pReq.write(chunk, 'binary');
   });
-  uReq.addListener('end', function() {
-    dReq.end();
+  cReq.addListener('end', function() {
+    pReq.end();
   });
 };
 
