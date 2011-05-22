@@ -93,6 +93,13 @@ var regexpFromLine = function(line){
          replace(/\\\^|\\\|\\\||\\\$.*/g, ''); // ignore ^ and || and $anything
 };
 
+var addSpoofingRule = function(name, line){
+  if (!spoofingRules[name]) {
+    spoofingRules[name] = [];
+  }
+  spoofingRules[name].push(line.split(/\|/).slice(1));
+};
+
 var parseFilterList = function(path){
   var lines = fs.readFileSync(path, 'utf-8').trim().split(/\n+/);
   var blEntries = [];
@@ -100,11 +107,9 @@ var parseFilterList = function(path){
 
   lines.forEach(function(line){
     if (line.match(/^!ref\|/)) {
-      spoofingRules.referer = spoofingRules.referer || [];
-      spoofingRules.referer.push(line.split(/\|/).slice(1,3));
+      addSpoofingRule('referer', line);
     } else if (line.match(/^!ua\|/)) {
-      spoofingRules.user_agent = spoofingRules.user_agent || [];
-      spoofingRules.user_agent.push(line.split(/\|/).slice(1,3));
+      addSpoofingRule('user_agent', line);
     } else if (!line.match(/^[!\[]|#/)) { // ignore comments, DOM rules and whitelisting
       if (line.match(/^@@/)) {
         wlEntries.push(regexpFromLine(line.slice(2)));
@@ -120,6 +125,7 @@ var parseFilterList = function(path){
 
   blacklist = append(blacklist, blEntries);
   whitelist = append(whitelist, wlEntries);
+
   if (!config.quiet) { console.log('Loaded ' + path); }
 };
 
