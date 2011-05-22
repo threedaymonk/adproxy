@@ -6,7 +6,8 @@ var http = require('http'),
 
 var config = {
   listenPort: 8989,
-  filterLists: []
+  filterLists: [],
+  quiet: false
 };
 
 var whitelist, blacklist, refSpoof, uaSpoof;
@@ -18,26 +19,14 @@ var resetRules = function(){
   uaSpoof   = [];
 }
 
-var logColors = {
-  1: 36, // cyan
-  2: 32, // green
-  3: 33, // yellow
-  4: 35, // magenta
-  5: 31  // red
-};
-
-var colorize = function(color, str){
-  return "\u001b[" + color + "m" + str + "\u001b[0m";
-};
-
 var log = function(ip, code, method, url, message){
-  var statusClass = parseInt(code / 100, 10);
+  if (config.quiet) { return; }
   if (message) {
     message = "=> " + message;
   }
-  console.log(colorize(logColors[statusClass],
+  console.log(
     [ip, code, method, url, message].join(" ")
-  ));
+  );
 };
 
 var callback = function(uReq, uRes) {
@@ -135,7 +124,7 @@ var parseFilterList = function(path){
 
   blacklist = append(blacklist, blEntries);
   whitelist = append(whitelist, wlEntries);
-  console.log('Loaded ' + path);
+  if (!config.quiet) { console.log('Loaded ' + path); }
 };
 
 var loadFilterLists = function(){
@@ -148,7 +137,8 @@ var loadFilterLists = function(){
 var switches = [
   ['-f', '--filter-list FILE', 'Use filter list file'],
   ['-h', '--help', 'Show this help'],
-  ['-p', '--port NUMBER', 'Listen on specified port (default ' + config.listenPort + ')']
+  ['-p', '--port NUMBER', 'Listen on specified port (default ' + config.listenPort + ')'],
+  ['-q', '--quiet', 'Disable logging to stdout']
 ];
 
 var parser = new optparse.OptionParser(switches);
@@ -160,6 +150,7 @@ parser.on('help', function(){
   sys.puts(parser.toString());
   process.exit();
 });
+parser.on('quiet', function(){ config.quiet = true; });
 parser.parse(process.argv);
 
 loadFilterLists();
