@@ -1,8 +1,10 @@
-var http = require('http'),
-    fs = require('fs'),
-    url = require('url'),
-    sys = require('sys'),
-    optparse = require('optparse');
+var http = require('http');
+var fs = require('fs');
+var url = require('url');
+var sys = require('sys');
+var optparse = require('optparse');
+
+var SUPPORTED_METHODS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE'];
 
 var config = {
   listenPort: 8989,
@@ -24,9 +26,7 @@ var log = function(ip, code, method, url, message){
   if (message) {
     message = "=> " + message;
   }
-  console.log(
-    [ip, code, method, url, message].join(" ")
-  );
+  console.log([ip, code, method, url, message].join(" "));
 };
 
 var callback = function(uReq, uRes) {
@@ -39,7 +39,7 @@ var callback = function(uReq, uRes) {
     return;
   }
 
-  if (["GET", "POST", "HEAD", "PUT", "DELETE"].indexOf(uReq.method) < 0) {
+  if (SUPPORTED_METHODS.indexOf(uReq.method) < 0) {
     log(ip, 501, uReq.method, uReq.url, 'Unsupported');
     uRes.writeHead(501);
     uRes.end();
@@ -91,16 +91,16 @@ var regexpEscape = function(text){
   return text.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, "\\$&");
 };
 
+var regexpFromLine = function(line){
+  return regexpEscape(line).
+         replace(/\\\*/, '.*'). // * => .*
+         replace(/\\\^|\\\|\\\||\\\$.*/g, ''); // ignore ^ and || and $anything
+};
+
 var parseFilterList = function(path){
   var lines = fs.readFileSync(path, 'utf-8').trim().split(/\n+/);
   var blEntries = [];
   var wlEntries = [];
-
-  var regexpFromLine = function(line){
-    return regexpEscape(line).
-           replace(/\\\*/, '.*'). // * => .*
-           replace(/\\\^|\\\|\\\||\\\$.*/g, ''); // ignore ^ and || and $anything
-  };
 
   lines.forEach(function(line){
     if (line.match(/^!ref\|/)) {
