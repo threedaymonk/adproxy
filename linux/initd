@@ -1,0 +1,26 @@
+#!/bin/sh
+
+. /lib/lsb/init-functions
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+START_IN=/usr/local/lib/adproxy
+SCRIPT=adproxy.js
+USER=adproxy
+CONFIG_FILE=/etc/adproxy.conf
+FOREVER_HOME=/var/cache/adproxy
+
+case "$1" in
+  start)
+    cd $START_IN
+    sudo -u $USER forever start -p $FOREVER_HOME -a -l /dev/null  $SCRIPT $(cat $CONFIG_FILE)
+    ;;
+  stop)
+    cd $START_IN
+    sudo -u $USER forever stop -p $FOREVER_HOME $SCRIPT
+    ;;
+  restart)
+    $0 stop
+    $0 start
+    ;;
+esac
+
