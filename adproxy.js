@@ -120,7 +120,11 @@ var parseFilterList = function(path){
   });
 
   var append = function(list, entries){
-    return ((list === null) ? '' : list + '|') + entries.join('|');
+    if (entries.length === 0) {
+      return list;
+    } else {
+      return ((list === null) ? '' : list + '|') + entries.join('|');
+    }
   };
 
   blacklist = append(blacklist, blEntries);
