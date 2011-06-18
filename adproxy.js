@@ -61,6 +61,7 @@ var callback = function(cReq, cRes) {
       }
     });
   });
+  delete headers['proxy-connection'];
 
   var path = reqUrl.pathname + (reqUrl.search || '');
   var pReq = proxy.request(cReq.method, path, headers);
