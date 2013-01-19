@@ -46,11 +46,6 @@ var callback = function(cReq, cRes) {
   }
 
   var reqUrl = url.parse(cReq.url);
-  var proxy = http.createClient(reqUrl.port || 80, reqUrl.hostname);
-
-  proxy.on('error', function(err){
-    killResponse(cReq, cRes, 500, err);
-  });
 
   var headers = cReq.headers;
 
@@ -64,7 +59,18 @@ var callback = function(cReq, cRes) {
   delete headers['proxy-connection'];
 
   var path = reqUrl.pathname + (reqUrl.search || '');
-  var pReq = proxy.request(cReq.method, path, headers);
+  var pReq = http.request({
+    port: reqUrl.port || 80,
+    host: reqUrl.hostname,
+    method: cReq.method,
+    path: path,
+    headers: headers
+  });
+
+  pReq.on('error', function(err){
+    killResponse(cReq, cRes, 500, err);
+  });
+
   pReq.addListener('response', function(pRes){
     var ip = cReq.connection.remoteAddress;
     log(ip, pRes.statusCode, cReq.method, cReq.url, pRes.headers.location);
