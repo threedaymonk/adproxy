@@ -2,6 +2,7 @@
   "name": "adproxy",
   "description": "An advert-blocking proxy that understands AdBlock Plus filters.",
   "version": "0.1.0",
+  "homepage": "https://github.com/threedaymonk/adproxy",
   "keywords": ["proxy", "http", "advertising", "adblock"],
   "maintainers": [{
     "name": "Paul Battley",
@@ -11,7 +12,10 @@
   "contributors": [{
     "name": "Paul Battley"
   }],
-  "bugs": "mailto:pbattley@gmail.com",
+  "bugs": {
+    "url": "http://github.com/owner/project/issues",
+    "email": "pbattley@gmail.com"
+  },
   "licenses": [{
     "type": "MIT",
     "url": "http://opensource.org/licenses/MIT"

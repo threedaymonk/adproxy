@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var http = require('http');
 var fs = require('fs');
 var url = require('url');
@@ -6,11 +8,7 @@ var optparse = require('optparse');
 
 var SUPPORTED_METHODS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE'];
 
-var config = {
-  listenPort: 8989,
-  filterLists: [],
-  quiet: false
-};
+var config = require('../config.json');
 
 var whitelist, blacklist, spoofingRules;
 
@@ -32,62 +30,6 @@ var killResponse = function(req, res, code, reason) {
   log(res.connection.remoteAddress, code, req.method, req.url, reason);
   res.writeHead(code);
   res.end();
-};
-
-var callback = function(cReq, cRes) {
-  if (!cReq.url.match(whitelist) && cReq.url.match(blacklist)) {
-    killResponse(cReq, cRes, 403, 'Blacklisted');
-    return;
-  }
-
-  if (SUPPORTED_METHODS.indexOf(cReq.method) < 0) {
-    killResponse(cReq, cRes, 501, 'Unsupported');
-    return;
-  }
-
-  var reqUrl = url.parse(cReq.url);
-
-  var headers = cReq.headers;
-
-  Object.keys(spoofingRules).forEach(function(name){
-    spoofingRules[name].forEach(function(r){
-      if (cReq.url.match(r[0])) {
-        headers[name] = r[1];
-      }
-    });
-  });
-  delete headers['proxy-connection'];
-
-  var path = reqUrl.pathname + (reqUrl.search || '');
-  var pReq = http.request({
-    port: reqUrl.port || 80,
-    host: reqUrl.hostname,
-    method: cReq.method,
-    path: path,
-    headers: headers
-  });
-
-  pReq.on('error', function(err){
-    killResponse(cReq, cRes, 500, err);
-  });
-
-  pReq.addListener('response', function(pRes){
-    var ip = cReq.connection.remoteAddress;
-    log(ip, pRes.statusCode, cReq.method, cReq.url, pRes.headers.location);
-    pRes.addListener('data', function(chunk){
-      cRes.write(chunk, 'binary');
-    });
-    pRes.addListener('end', function(){
-      cRes.end();
-    });
-    cRes.writeHead(pRes.statusCode, pRes.headers);
-  });
-  cReq.addListener('data', function(chunk){
-    pReq.write(chunk, 'binary');
-  });
-  cReq.addListener('end', function(){
-    pReq.end();
-  });
 };
 
 var regexpEscape = function(text){
@@ -169,4 +111,65 @@ parser.parse(process.argv);
 loadFilterLists();
 process.on('SIGUSR1', loadFilterLists);
 
-http.createServer(callback).listen(config.listenPort);
+var server = http.createServer();
+server.on('request', function(cReq, cRes) {
+  if (!cReq.url.match(whitelist) && cReq.url.match(blacklist)) {
+    killResponse(cReq, cRes, 403, 'Blacklisted');
+    return;
+  }
+
+  if (SUPPORTED_METHODS.indexOf(cReq.method) < 0) {
+    killResponse(cReq, cRes, 501, 'Unsupported');
+    return;
+  }
+
+  var reqUrl = url.parse(cReq.url);
+
+  var headers = cReq.headers;
+
+  Object.keys(spoofingRules).forEach(function(name){
+    spoofingRules[name].forEach(function(r){
+      if (cReq.url.match(r[0])) {
+        headers[name] = r[1];
+      }
+    });
+  });
+  delete headers['proxy-connection'];
+
+  var path = reqUrl.pathname + (reqUrl.search || '');
+  var pReq = http.request({
+    port: reqUrl.port || 80,
+    host: reqUrl.hostname,
+    method: cReq.method,
+    path: path,
+    headers: headers
+  });
+
+  pReq.on('error', function(err){
+    killResponse(cReq, cRes, 500, err);
+  });
+
+  cRes.on('close', function(err) {
+    this.terminated = true;
+  });
+
+  pReq.on('response', function(pRes){
+    var ip = cReq.connection.remoteAddress;
+    log(ip, pRes.statusCode, cReq.method, cReq.url, pRes.headers.location);
+    pRes.on('data', function(chunk){
+      cRes.write(chunk, 'binary');
+    });
+    pRes.on('end', function(){
+      if (cRes.terminated !== true)
+        cRes.end();
+    });
+    cRes.writeHead(pRes.statusCode, pRes.headers);
+  });
+  cReq.on('data', function(chunk){
+    pReq.write(chunk, 'binary');
+  });
+  cReq.on('end', function(){
+    pReq.end();
+  });
+});
+server.listen(config.listenPort);
