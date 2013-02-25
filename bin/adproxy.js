@@ -113,7 +113,7 @@ process.on('SIGUSR1', loadFilterLists);
 
 var server = http.createServer();
 server.on('request', function(cReq, cRes) {
-    if (!cReq.url.match(whitelist) && cReq.url.match(blacklist)) {
+  if (!cReq.url.match(whitelist) && cReq.url.match(blacklist)) {
     killResponse(cReq, cRes, 403, 'Blacklisted');
     return;
   }
@@ -149,6 +149,10 @@ server.on('request', function(cReq, cRes) {
     killResponse(cReq, cRes, 500, err);
   });
 
+  cRes.on('close', function(err) {
+    this.terminated = true;
+  });
+
   pReq.on('response', function(pRes){
     var ip = cReq.connection.remoteAddress;
     log(ip, pRes.statusCode, cReq.method, cReq.url, pRes.headers.location);
@@ -156,7 +160,8 @@ server.on('request', function(cReq, cRes) {
       cRes.write(chunk, 'binary');
     });
     pRes.on('end', function(){
-      cRes.end();
+      if (cRes.terminated !== true)
+        cRes.end();
     });
     cRes.writeHead(pRes.statusCode, pRes.headers);
   });
