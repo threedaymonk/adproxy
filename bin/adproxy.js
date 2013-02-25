@@ -8,11 +8,7 @@ var optparse = require('optparse');
 
 var SUPPORTED_METHODS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE'];
 
-var config = {
-  listenPort: 8989,
-  filterLists: [],
-  quiet: false
-};
+var config = require('../config.json');
 
 var whitelist, blacklist, spoofingRules;
 
