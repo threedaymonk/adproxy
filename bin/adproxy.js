@@ -149,21 +149,21 @@ server.on('request', function(cReq, cRes) {
     killResponse(cReq, cRes, 500, err);
   });
 
-  pReq.addListener('response', function(pRes){
+  pReq.on('response', function(pRes){
     var ip = cReq.connection.remoteAddress;
     log(ip, pRes.statusCode, cReq.method, cReq.url, pRes.headers.location);
-    pRes.addListener('data', function(chunk){
+    pRes.on('data', function(chunk){
       cRes.write(chunk, 'binary');
     });
-    pRes.addListener('end', function(){
+    pRes.on('end', function(){
       cRes.end();
     });
     cRes.writeHead(pRes.statusCode, pRes.headers);
   });
-  cReq.addListener('data', function(chunk){
+  cReq.on('data', function(chunk){
     pReq.write(chunk, 'binary');
   });
-  cReq.addListener('end', function(){
+  cReq.on('end', function(){
     pReq.end();
   });
 });
