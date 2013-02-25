@@ -11,7 +11,10 @@
   "contributors": [{
     "name": "Paul Battley"
   }],
-  "bugs": "mailto:pbattley@gmail.com",
+  "bugs": {
+    "url": "http://github.com/owner/project/issues",
+    "email": "pbattley@gmail.com"
+  },
   "licenses": [{
     "type": "MIT",
     "url": "http://opensource.org/licenses/MIT"
