@@ -69,14 +69,22 @@ var requestHandler = function(cReq, cRes) {
     killResponse(cReq, cRes, 500, err);
   });
 
+  cRes.on('close', function(err) {
+    this.terminated = true;
+  });
+
   pReq.on('response', function(pRes){
     var ip = cReq.connection.remoteAddress;
     log(ip, pRes.statusCode, cReq.method, cReq.url, pRes.headers.location);
     pRes.on('data', function(chunk){
-      cRes.write(chunk, 'binary');
+      if (!cRes.terminated) {
+        cRes.write(chunk, 'binary');
+      }
     });
     pRes.on('end', function(){
-      cRes.end();
+      if (!cRes.terminated) {
+        cRes.end();
+      }
     });
     cRes.writeHead(pRes.statusCode, pRes.headers);
   });
