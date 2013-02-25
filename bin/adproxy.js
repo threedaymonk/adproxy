@@ -34,7 +34,7 @@ var killResponse = function(req, res, code, reason) {
   res.end();
 };
 
-var callback = function(cReq, cRes) {
+var requestHandler = function(cReq, cRes) {
   if (!cReq.url.match(whitelist) && cReq.url.match(blacklist)) {
     killResponse(cReq, cRes, 403, 'Blacklisted');
     return;
@@ -169,4 +169,6 @@ parser.parse(process.argv);
 loadFilterLists();
 process.on('SIGUSR1', loadFilterLists);
 
-http.createServer(callback).listen(config.listenPort);
+var server = http.createServer();
+server.on('request', requestHandler);
+server.listen(config.listenPort);
